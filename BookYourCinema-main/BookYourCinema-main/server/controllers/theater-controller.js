@@ -1,60 +1,53 @@
-const Theater = require('../models/Theater')
+const Theater = require('../models/Theater');
+const Showtime = require('../models/Showtime');
 
-
-// add theater
 exports.addTheater = async (req, res) => {
-    const newTheater = new Theater(req.body)
+  try {
+    const theater = await Theater.create(req.body);
+    return res.status(201).json(theater);
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
 
-    try {
-        await newTheater.save();
-        res.send(newTheater);
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
-}
-
-// Get all theater
 exports.getTheater = async (req, res) => {
-    try {
-        const theaters = await Theater.find();
-        res.send(theaters)
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
-}
+  try {
+    return res.json(await Theater.find().sort({ name: 1 }));
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 
-// Search theater
 exports.searchTheater = async (req, res) => {
-    try {
-        const theater = await Theater.findById(req.params.id)
-        if (!theater) res.status(404).send("Theater not found");
-        res.send(theater)
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
-}
+  try {
+    const theater = await Theater.findById(req.params.id);
+    if (!theater) return res.status(404).json({ message: 'Theater not found.' });
+    return res.json(theater);
+  } catch (error) {
+    return res.status(400).json({ message: 'Invalid theater id.' });
+  }
+};
 
-// Update theater
 exports.updateTheater = async (req, res) => {
-    try {
-        const theater = await Theater.findById(req.params.id);
-        if (!theater) res.status(404).send("Theater not found");
+  try {
+    const theater = await Theater.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (!theater) return res.status(404).json({ message: 'Theater not found.' });
+    return res.json(theater);
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};
 
-        Object.assign(theater, req.body)
-        await theater.save();
-        res.send(theater)
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
-}
-
-// Delete theater
 exports.deleteTheater = async (req, res) => {
-    try {
-        const deletedTheater = await Theater.findByIdAndDelete(req.params.id)
-        if (!deletedTheater) res.status(404).send("Theater not found");
-        res.send(`${deletedTheater.name}: deleted`);
-    } catch (err) {
-        res.status(500).send(err.message);
+  try {
+    const theater = await Theater.findById(req.params.id);
+    if (!theater) return res.status(404).json({ message: 'Theater not found.' });
+    if (await Showtime.exists({ theaterId: theater._id })) {
+      return res.status(409).json({ message: 'Delete this theater showtimes before deleting the theater.' });
     }
-}
+    await theater.deleteOne();
+    return res.json({ message: `${theater.name} deleted.` });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+};

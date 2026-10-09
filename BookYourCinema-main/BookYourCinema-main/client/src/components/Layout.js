@@ -1,45 +1,24 @@
-import { Outlet, Link } from "react-router-dom"
-import Auth from "./Auth/UserAuth"
+import { Link, Outlet } from 'react-router-dom';
+import UserAuth from './Auth/UserAuth';
+import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
-    return (
-        <>
-            <nav>
-                <div className={`navbar container px-3`}>
-                    <div className={`container-fluid`}>
-                        {/* Logo */}
-                        <a className={`navbar-brand`}>Navbar</a>
-
-                        {/* Search */}
-                        <form className={`d-flex col-md-5`} role="search">
-                            <input className={`form-control me-2`} type="search" placeholder="Search" aria-label="Search" />
-                        </form>
-
-                        {/* Sign In */}
-                        <div className="SignIn">
-                            <Auth/>
-                        </div>
-
-                    </div>
-                </div>
-
-                {/* links */}
-                <div className={`links`} style={{ width: "100%", backgroundColor: "#f5f5f5" }}>
-                    <div className={`container my-3 `}>
-                        <ul className={`nav d-flex justify-content-between`}>
-                            <li className={`nav-item`}>
-                                <Link className={`nav-link text-dark`} to="/">Movies</Link>
-                            </li>
-                            <li className={`nav-item`}>
-                                <Link className={`nav-link text-dark`} to={"/admin"}>ListYourShow</Link>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </nav >
-            <div className="menu">
-                <Outlet />
-            </div>
-        </>
-    )
+  const { session } = useAuth();
+  return (
+    <>
+      <header className="site-header">
+        <div className="nav-inner">
+          <Link className="brand" to="/"><span className="brand-mark">B</span><span>book<span className="brand-accent">your</span>cinema</span></Link>
+          <nav className="main-nav" aria-label="Main navigation">
+            <Link to="/">Movies</Link>
+            {session?.role === 'user' && <Link to="/bookings">My bookings</Link>}
+            <Link to="/admin">List your cinema</Link>
+          </nav>
+          <UserAuth />
+        </div>
+      </header>
+      <Outlet />
+      <footer className="site-footer"><Link className="brand" to="/"><span className="brand-mark">B</span><span>book<span className="brand-accent">your</span>cinema</span></Link><p>Good stories belong on the big screen.</p><span>© {new Date().getFullYear()} BookYourCinema</span></footer>
+    </>
+  );
 }

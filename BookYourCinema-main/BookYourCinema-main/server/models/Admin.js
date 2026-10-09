@@ -21,7 +21,8 @@ const AdminSchema = new Schema({
     },
     movies: [
         {
-            type: String
+            type: Schema.Types.ObjectId,
+            ref: 'Movie'
         }
     ]
 }, { timestamps: true });

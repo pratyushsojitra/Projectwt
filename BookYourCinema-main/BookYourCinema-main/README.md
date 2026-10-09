@@ -1,70 +1,67 @@
-# Getting Started with Create React App
+# BookYourCinema
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A MERN cinema ticket booking application: React client, Express/Node API, and MongoDB persistence.
 
-## Available Scripts
+## Requirements
 
-In the project directory, you can run:
+- Node.js 18 or newer and npm
+- MongoDB running locally, or a MongoDB Atlas connection string
 
-### `npm start`
+## Run locally
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+1. Open a terminal in this directory and install dependencies:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+   ```sh
+   npm install
+   npm --prefix server install
+   npm --prefix client install
+   ```
 
-### `npm test`
+2. Copy `server/.env.example` to `server/.env`. Set `MONGO_URI` to your MongoDB connection string and replace `JWT_SECRET` with a long, random secret.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+3. Start the API and React app together:
 
-### `npm run build`
+   ```sh
+   npm start
+   ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+   The React app is at `http://localhost:3000`; the API is at `http://localhost:5000`. The API health check is `http://localhost:5000/health`.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+To use a different API URL, set `REACT_APP_API_URL` in `client/.env`. For development with automatic server restarts, run `npm run server:dev` in place of the combined command.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Features
 
-### `npm run eject`
+- Browse and search movies, with movie details, cast, rating, duration, genres, and trailer links.
+- Customer sign-up/sign-in with hashed passwords and JWT sessions.
+- Browse movie showtimes and seat availability, book up to 10 seats, and view/cancel personal bookings.
+- Partner sign-up/sign-in and dashboard for publishing movies, theaters, and showtimes.
+- Role-protected write APIs, ownership checks for movie updates/deletes, and atomic seat claims to prevent two customers booking the same seat.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The first partner can create an account from **List your cinema**. For a public production deployment, partner registration should be restricted to an invitation or operator approval flow.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## API overview
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+| Method | Endpoint | Access | Purpose |
+|---|---|---|---|
+| `POST` | `/user/signup`, `/user/signin` | Public | Customer authentication |
+| `GET` | `/user/bookings` | Customer | List the signed-in customer's bookings |
+| `GET` | `/movies`, `/movies/:id` | Public | Browse/search and view a movie |
+| `POST`, `PATCH`, `DELETE` | `/movies` and `/movies/:id` | Partner | Manage movies |
+| `GET` | `/theaters` | Public | Browse theaters |
+| `POST`, `PATCH`, `DELETE` | `/theaters` and `/theaters/:id` | Partner | Manage theaters |
+| `GET` | `/showtime?movieId=...` | Public | Browse showtimes and booked seats |
+| `POST`, `PATCH`, `DELETE` | `/showtime` and `/showtime/:id` | Partner | Manage showtimes |
+| `POST` | `/reservation` | Customer | Reserve available seats |
+| `GET` | `/reservation/mine` | Customer | List personal reservations |
+| `GET` | `/reservation` | Partner | List customer bookings for check-in |
+| `DELETE` | `/reservation/:id` | Reservation owner | Cancel a reservation |
+| `PATCH` | `/reservation/:id/check-in` | Partner | Check in a reservation |
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Protected endpoints accept `Authorization: Bearer <token>`.
 
-## Learn More
+## Build and test
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```sh
+npm run build
+npm test
+```

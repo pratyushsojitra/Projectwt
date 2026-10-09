@@ -14,7 +14,6 @@
     "axios": "^1.7.7",
     "bootstrap": "^5.3.3",
     "bourbon": "^7.3.0",
-    "client": "file:",
     "es6-object-assign": "^1.1.0",
     "keyframe": "^2.1.0",
     "promise-polyfill": "^6.1.0",

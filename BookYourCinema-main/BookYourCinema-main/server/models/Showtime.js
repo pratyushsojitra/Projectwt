@@ -39,6 +39,10 @@ const ShowtimeSchema = new Schema({
     price: {
         type: Number,
         required: true
+    },
+    bookedSeats: {
+        type: [String],
+        default: []
     }
 }, { timestamps: true });
 

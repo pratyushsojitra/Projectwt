@@ -18,8 +18,12 @@ const BookingSchema = new Schema({
         required: true
     },
     seats: {
-        type: [Schema.Types.Mixed],
+        type: [String],
         required: true,
+        validate: {
+            validator: (seats) => seats.length > 0 && new Set(seats).size === seats.length,
+            message: 'Select at least one unique seat.'
+        }
     },
     totalPrice: {
         type: Number,
@@ -28,7 +32,7 @@ const BookingSchema = new Schema({
     },
     checkIn: {
         type: Boolean,
-        required: true
+        default: false
     },
 }, { timestamps: true });
 

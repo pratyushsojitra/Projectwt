@@ -1,106 +1,74 @@
 const User = require('../models/User');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
-// Sign up
+const createToken = (user) => jwt.sign(
+  { id: user._id.toString(), role: 'user' },
+  process.env.JWT_SECRET,
+  { expiresIn: '7d' }
+);
+
 exports.signup = async (req, res) => {
-    let { username, email, password, phone } = req.body;
-
-    if (!username || username.trim() === "" || !email || email.trim() === "" || !password || password.trim() === "" || !phone) {
-        return res.status(422).json({ message: "All fields are required." });
+  try {
+    const { username, email, password, phone } = req.body;
+    if (![username, email, password, phone].every((value) => typeof value === 'string' && value.trim())) {
+      return res.status(422).json({ message: 'Name, email, password and phone are required.' });
+    }
+    if (password.length < 8) {
+      return res.status(422).json({ message: 'Password must be at least 8 characters.' });
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-        return res.status(400).json({ message: "User already exist" });
+    const normalizedEmail = email.trim().toLowerCase();
+    if (await User.exists({ email: normalizedEmail })) {
+      return res.status(409).json({ message: 'An account with this email already exists.' });
     }
 
-    let user;
-    try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ username, email, password: hashedPassword, phone });
-        await user.save();
+    const user = await User.create({
+      username: username.trim(),
+      email: normalizedEmail,
+      password: await bcrypt.hash(password, 10),
+      phone: phone.trim()
+    });
 
-        return res.status(201).json({ message: 'User created successfully', user });
-    } catch (err) {
-        return res.status(500).json({ message: err.message || "Unexpected error occurred" });
-    }
-}
+    return res.status(201).json({
+      message: 'Account created successfully.',
+      token: createToken(user),
+      user: { id: user._id, username: user.username, email: user.email }
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 
-// Login
 exports.signIn = async (req, res) => {
+  try {
     const { email, password } = req.body;
+    if (!email || !password) return res.status(422).json({ message: 'Email and password are required.' });
 
-    try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            res.status(404).json({ message: "User not found" });
-        }
-
-        const isPasswordCorrect = await bcrypt.compare(password, user.password);
-        if (!isPasswordCorrect) {
-            res.status(400).json({ message: "Incorrect password" });
-        }
-
-        res.json({ message: "Logged in successfully" });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ message: 'Invalid email or password.' });
     }
-}
 
-// Get all users
-exports.getAll = async (req, res) => {
-    try {
-        const users = await User.find();
-        res.json(users);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
+    return res.json({
+      message: 'Signed in successfully.',
+      token: createToken(user),
+      user: { id: user._id, username: user.username, email: user.email }
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 
-// Search user
-exports.searchUser = async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        if (!user) {
-            res.status(404).json({ message: "User not found" });
-        }
-        res.json(user);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
-
-// Update user
-exports.updateUser = async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        if (!user) {
-            res.status(404).json({ message: "User not found" });
-        }
-
-        Object.assign(user, req.body);
-
-        // Check if password is modified before hashing
-        if (req.body.password) {
-            user.password = await bcrypt.hash(req.body.password, 10);
-        }
-
-        await user.save();
-        res.json({ message: `${user.username} updated successfully` });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
-
-// Delete user
-exports.deleteUser = async (req, res) => {
-    try {
-        const user = await User.findByIdAndDelete(req.params.id);
-        if (!user) {
-            res.status(404).json({ message: "User not found" });
-        }
-        res.json({ message: `${user.username} deleted successfully` });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
+exports.getBookings = async (req, res) => {
+  try {
+    const user = await User.findById(req.auth.id).select('bookings').populate({
+      path: 'bookings',
+      populate: [{ path: 'movies', select: 'title posterUrl' }, { path: 'showtimeId' }]
+    });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    return res.json(user.bookings);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};

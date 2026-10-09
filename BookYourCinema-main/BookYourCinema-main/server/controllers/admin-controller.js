@@ -1,108 +1,63 @@
 const Admin = require('../models/Admin');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-require('dotenv').config()
 
-// Sign up
+const adminResponse = (admin) => ({
+  id: admin._id,
+  adminName: admin.adminName,
+  email: admin.email
+});
+
+const createToken = (admin) => jwt.sign(
+  { id: admin._id.toString(), role: 'admin' },
+  process.env.JWT_SECRET,
+  { expiresIn: '7d' }
+);
+
 exports.signup = async (req, res) => {
-    let { adminName, email, password, phone } = req.body;
+  try {
+    const { adminName, email, password, phone } = req.body;
+    if (![adminName, email, password, phone].every((value) => typeof value === 'string' && value.trim())) {
+      return res.status(422).json({ message: 'Name, email, password and phone are required.' });
+    }
+    if (password.length < 8) return res.status(422).json({ message: 'Password must be at least 8 characters.' });
 
-    if (!adminName || adminName.trim() === "" || !email || email.trim() === "" || !password || password.trim() === "" || !phone) {
-        return res.status(422).json({ message: "All fields are required." });
+    const normalizedEmail = email.trim().toLowerCase();
+    if (await Admin.exists({ email: normalizedEmail })) {
+      return res.status(409).json({ message: 'An admin account with this email already exists.' });
     }
 
-    const existingAdmin = await Admin.findOne({ email });
-    if (existingAdmin) {
-        return res.status(400).json({ message: "Admin already exist" });
-    }
+    const admin = await Admin.create({
+      adminName: adminName.trim(),
+      email: normalizedEmail,
+      password: await bcrypt.hash(password, 10),
+      phone: phone.trim()
+    });
+    return res.status(201).json({
+      message: 'Admin account created successfully.',
+      token: createToken(admin),
+      user: adminResponse(admin)
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 
-    let admin;
-    try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        admin = new Admin({ adminName, email, password: hashedPassword, phone });
-        await admin.save();
-
-        return res.status(201).json({ message: 'Admin created successfully', admin });
-    } catch (err) {
-        return res.status(500).json({ message: err.message || "Unexpected error occurred" });
-    }
-}
-
-// Sign in
 exports.signIn = async (req, res) => {
-    try {
-        const admin = await Admin.findOne({ email: req.body.email });
-        
-        if (!admin) {
-            res.status(404).json({ message: "admin not found" });
-        }
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(422).json({ message: 'Email and password are required.' });
 
-        const isPasswordCorrect = await bcrypt.compare(req.body.password, admin.password);
-        if (!isPasswordCorrect) {
-            res.status(400).json({ message: "Incorrect password" });
-        }
-        const token = jwt.sign({id: admin._id}, process.env.JWT_SECRET, {expiresIn: "1d"});
-
-        res.json({ message: "Logged in successfully", token, id:admin._id});
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+    const admin = await Admin.findOne({ email: email.trim().toLowerCase() });
+    if (!admin || !(await bcrypt.compare(password, admin.password))) {
+      return res.status(401).json({ message: 'Invalid email or password.' });
     }
-}
-
-// Get all admin
-exports.getAll = async (req, res) => {
-    try {
-        const admin = await Admin.find();
-        res.json(admin);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
-
-// Search admin
-exports.searchAdmin = async (req, res) => {
-    try {
-        const admin = await Admin.findById(req.params.id);
-        if (!admin) {
-            res.status(404).json({ message: "Admin not found" });
-        }
-        res.json(admin);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
-
-// Update admin
-exports.updateAdmin = async (req, res) => {
-    try {
-        const admin = await Admin.findById(req.params.id);
-        if (!admin) {
-            res.status(404).json({ message: "Admin not found" });
-        }
-
-        Object.assign(admin, req.body);
-
-        // Check if password is modified before hashing
-        if (req.body.password) {
-            admin.password = await bcrypt.hash(req.body.password, 10);
-        }
-
-        await admin.save();
-        res.json({ message: `${admin.email} updated successfully` });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
-
-// Delete admin
-exports.deleteAdmin = async (req, res) => {
-    try {
-        const admin = await Admin.findByIdAndDelete(req.params.id);
-        if (!admin) {
-            res.status(404).json({ message: "admin not found" });
-        }
-        res.json({ message: `${admin.email} deleted successfully` });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
+    return res.json({
+      message: 'Signed in successfully.',
+      token: createToken(admin),
+      user: adminResponse(admin)
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};

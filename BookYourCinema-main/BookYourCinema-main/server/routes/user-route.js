@@ -1,23 +1,10 @@
 const express = require('express');
-const { signup, signIn, getAll, searchUser, updateUser, deleteUser } = require('../controllers/user-controller')
+const { signup, signIn, getBookings } = require('../controllers/user-controller');
+const authenticate = require('../middleware/auth');
 const route = express.Router();
 
-// Sign up
 route.post('/signup', signup);
-
-// Sign in
 route.post('/signin', signIn);
+route.get('/bookings', authenticate('user'), getBookings);
 
-// Get all user
-route.get('/', getAll);
-
-// Search user
-route.get('/:id', searchUser);
-
-// Update user
-route.patch("/:id", updateUser);
-
-// Delete user
-route.delete('/:id', deleteUser);
-
-module.exports = route
+module.exports = route;

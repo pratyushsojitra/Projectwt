@@ -1,32 +1,26 @@
-import { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { userAuthRequest } from '../../api-helpers/api-helper';
 import AuthForm from './AuthForm';
 
-const UserAuth = () => {
-    const [showModal, setShowModal] = useState(false);
+export default function UserAuth() {
+  const { session, showAuth, openAuth, closeAuth, login, logout } = useAuth();
 
-    const handleAuthSubmit = (inputData, isSignIn) => {
-        userAuthRequest(inputData, isSignIn)
-            .catch((err) => console.error(err))
-    };
+  const handleAuthSubmit = async (input, isSignIn) => {
+    const result = await userAuthRequest(input, isSignIn);
+    login(result, 'user');
+  };
 
-    const handleClose = () => setShowModal(false);
-    const handleShow = () => setShowModal(true);
-
-    return (
-        <>
-            <button onClick={handleShow} className="btn btn-danger">
-                Sign in
-            </button>
-
-            <AuthForm
-                onSubmit={handleAuthSubmit}
-                isUser={true}
-                showModal={showModal}
-                handleClose={handleClose}
-            />
-        </>
-    );
-};
-
-export default UserAuth;
+  return (
+    <>
+      {session?.role === 'user' ? (
+        <div className="account-actions">
+          <span className="account-name">Hi, {session.username}</span>
+          <button className="button button-outline" type="button" onClick={logout}>Sign out</button>
+        </div>
+      ) : (
+        <button className="button button-primary" type="button" onClick={openAuth}>Sign in</button>
+      )}
+      <AuthForm onSubmit={handleAuthSubmit} isUser showModal={showAuth} handleClose={closeAuth} />
+    </>
+  );
+}

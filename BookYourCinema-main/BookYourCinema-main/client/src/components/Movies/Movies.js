@@ -1,41 +1,69 @@
-import { useEffect, useState } from "react";
-import { getAllMovies } from "../../api-helpers/api-helper";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { getAllMovies } from '../../api-helpers/api-helper';
 
 export default function Movies() {
-    const [movies, setMovies] = useState([]);
+  const [movies, setMovies] = useState([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-    useEffect(() => {
-        getAllMovies()
-            .then((movie) => {
-                setMovies(movie.data)
-            })
-            .catch((err) => console.log(err))
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    const loadMovies = async () => {
+      try {
+        const response = await getAllMovies(search.trim());
+        if (active) setMovies(response.data);
+      } catch (requestError) {
+        if (active) setError(requestError.response?.data?.message || 'Could not load movies. Check that the API is running.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadMovies();
+    return () => { active = false; };
+  }, [search]);
 
-    }, []);
+  return (
+    <main className="movies-page">
+      <section className="hero">
+        <div className="hero-copy">
+          <span className="eyebrow">YOUR NEXT NIGHT OUT</span>
+          <h1>Movies worth<br />leaving home for.</h1>
+          <p>Find your film. Pick your seats. Make it a night.</p>
+          <a className="button button-primary" href="#now-showing">Explore movies <span aria-hidden="true">↓</span></a>
+        </div>
+        <div className="hero-art" aria-hidden="true"><span>★</span><span>NOW<br />SHOWING</span></div>
+      </section>
 
-    return (
-        <div className="container">
-          <div className="row">
+      <section className="movie-section" id="now-showing">
+        <div className="section-heading">
+          <div><span className="eyebrow">ON THE BIG SCREEN</span><h2>Now showing</h2></div>
+          <label className="search-box">
+            <span aria-hidden="true">⌕</span>
+            <input aria-label="Search movies" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search movies" />
+          </label>
+        </div>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        {loading ? <p className="empty-state">Finding your next movie…</p> : movies.length ? (
+          <div className="movie-grid">
             {movies.map((movie) => (
-              <div className="col-md-3 mb-4" key={movie._id}>
-                <Link to={`/movie/${movie._id}`} className="text-decoration-none">
-                  <div className="card border-0" style={{ width: "18rem" }}>
-                    <img 
-                      src={movie.posterUrl} 
-                      className="card-img-top" 
-                      alt={movie.title}
-                      style={{width: '261px', height: '392px'}}  
-                    />
-                    <div className="card-body px-0">
-                      <h5 className="card-title">{movie.title}</h5>
-                      <p className="card-text text-muted">{movie.genre.join(", ")}</p>
-                    </div>
-                  </div>
-                </Link>
-              </div>
+              <Link to={`/movie/${movie._id}`} className="movie-card" key={movie._id}>
+                <div className="poster-wrap">
+                  <img src={movie.posterUrl} alt={`${movie.title} poster`} loading="lazy" />
+                  <span className="rating-badge">★ {movie.rating ?? '—'}</span>
+                  <span className="poster-cta">View details <span aria-hidden="true">↗</span></span>
+                </div>
+                <div className="movie-card-copy">
+                  <h3>{movie.title}</h3>
+                  <p>{(movie.genre || []).join(' · ') || movie.language}</p>
+                </div>
+              </Link>
             ))}
           </div>
-        </div>
-      );
+        ) : <p className="empty-state">{search ? 'No movies match your search.' : 'No movies are listed yet. Check back soon.'}</p>}
+      </section>
+    </main>
+  );
 }

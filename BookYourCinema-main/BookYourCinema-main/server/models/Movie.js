@@ -8,15 +8,15 @@ const MovieSchema = new Schema({
     },
     posterUrl: {
         type: String,
-        require: true
+        required: true
     },
     trailerUrl: {
         type: String,
-        require: true
+        required: true
     },
     language: {
         type: String,
-        require: true
+        required: true
     },
     cast: [{
         type: String,
@@ -32,20 +32,20 @@ const MovieSchema = new Schema({
     }],
     releaseDate: {
         type: Date,
-        require: true
+        required: true
     },
     duration: {
         type: Number,
-        require: true
+        required: true
     },
     rating: {
         type: Number,
-        require: true
+        required: true
     },
     admin: {
         type: Schema.Types.ObjectId,
         ref: 'Admin',
-        require: true
+        required: true
     },
     bookings: [
         {

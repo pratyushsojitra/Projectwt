@@ -1,15 +1,12 @@
 const mongoose = require('mongoose');
-require('dotenv').config
+require('dotenv').config();
 
 const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('Database connected')
+  if (!process.env.MONGO_URI) {
+    throw new Error('MONGO_URI is missing. Add it to server/.env before starting the API.');
   }
-  catch(err){
-    console.log(err.message);
-    process.exit(1)
-  }
+  await mongoose.connect(process.env.MONGO_URI);
+  console.log('Database connected');
 };
 
 module.exports = connectDB

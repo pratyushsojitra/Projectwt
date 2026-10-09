@@ -1,124 +1,62 @@
-import { useState } from "react";
-import '../styles/AuthFrom.css';
-import swal from 'sweetalert';
-import Button from 'react-bootstrap/Button';
+import { useState } from 'react';
 import Modal from 'react-bootstrap/Modal';
 
-export default function AuthForm({ onSubmit, isUser, showModal, handleClose}) {
+export default function AuthForm({ onSubmit, isUser = true, showModal, handleClose }) {
+  const [isSignIn, setIsSignIn] = useState(true);
+  const [input, setInput] = useState({ name: '', mobile: '', email: '', password: '' });
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-    const [isSignIn, setIsSignIn] = useState(true);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      await onSubmit(input, isSignIn);
+      setInput({ name: '', mobile: '', email: '', password: '' });
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to sign in. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
-    const [input, setInput] = useState({
-        name: "",
-        mobile: "",
-        email: "",
-        password: ""
-    });
+  const changeMode = () => {
+    setIsSignIn(!isSignIn);
+    setError('');
+  };
 
-    const handleChange = (e) => {
-        setInput((prevInput) => ({
-            ...prevInput,
-            [e.target.name]: e.target.value
-        }));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await onSubmit(input, isSignIn);
-
-            // close the modal
-            handleClose();
-
-            // Success message
-            swal("Good job!", isSignIn ? "Signed in successfully!" : "Account created successfully!", "success");
-        } catch (err) {
-            console.error("Form submission failed", err);
-            alert("Error occurred during form submission. Please try again.");
-        }
-    };
-
-    return (
-        <>
-            <Modal show={showModal} onHide={handleClose} centered>
-                <Modal.Header className="bg-danger text-white" closeButton>
-                    <Modal.Title >{isSignIn ? "Sign In" : "Sign Up"}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                <form onSubmit={handleSubmit}>
-                                <div className="form-container">
-                                    {!isSignIn && (
-                                        <>
-                                            <div className="mb-3">
-                                                <label className="form-label">Username</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-underline"
-                                                    id="username"
-                                                    name="name"
-                                                    placeholder="Enter your username"
-                                                    onChange={handleChange}
-                                                />
-                                            </div>
-
-                                            <div className="mb-3">
-                                                <label className="form-label">Mobile number</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-underline"
-                                                    id="mobile"
-                                                    name="mobile"
-                                                    placeholder="+91"
-                                                    onChange={handleChange}
-                                                />
-                                            </div>
-                                        </>
-                                    )}
-
-                                    <div className="mb-3">
-                                        <label className="form-label">Email</label>
-                                        <input
-                                            type="email"
-                                            className="form-underline"
-                                            id="email"
-                                            name="email"
-                                            placeholder="Enter your email"
-                                            onChange={handleChange}
-                                        />
-                                    </div>
-
-                                    <div className="mb-3">
-                                        <label className="form-label">Password</label>
-                                        <input
-                                            type="password"
-                                            className="form-underline"
-                                            id="password"
-                                            name="password"
-                                            placeholder="Enter your password"
-                                            onChange={handleChange}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="submit-btn-container">
-                                    <button type="submit" className="btn-submit">
-                                        {isSignIn ? "Sign In" : "Sign Up"}
-                                    </button>
-                                </div>
-                            </form>
-
-                            <div className="sign-in mt-3">
-                                {isSignIn ? "Create new account" : "Already have an account?"}&nbsp;
-                                <button
-                                    className="text-primary"
-                                    onClick={() => setIsSignIn(!isSignIn)}
-                                    style={{ textDecoration: 'underline' }}
-                                >
-                                    {isSignIn ? "Sign Up" : "Sign In"}
-                                </button>
-                            </div>
-                </Modal.Body>
-            </Modal >
-        </>
-    );
+  return (
+    <Modal show={showModal} onHide={handleClose} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>{isSignIn ? 'Welcome back' : 'Create your account'}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <form onSubmit={handleSubmit} className="auth-form">
+          {!isSignIn && <>
+            <label>{isUser ? 'Name' : 'Business name'}
+              <input required minLength="2" autoComplete="name" value={input.name} onChange={(event) => setInput({ ...input, name: event.target.value })} />
+            </label>
+            <label>Phone
+              <input required type="tel" autoComplete="tel" value={input.mobile} onChange={(event) => setInput({ ...input, mobile: event.target.value })} />
+            </label>
+          </>}
+          <label>Email
+            <input required type="email" autoComplete="email" value={input.email} onChange={(event) => setInput({ ...input, email: event.target.value })} />
+          </label>
+          <label>Password
+            <input required minLength="8" type="password" autoComplete={isSignIn ? 'current-password' : 'new-password'} value={input.password} onChange={(event) => setInput({ ...input, password: event.target.value })} />
+          </label>
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <button className="button button-primary w-100" type="submit" disabled={busy}>
+            {busy ? 'Please wait…' : isSignIn ? 'Sign in' : 'Create account'}
+          </button>
+        </form>
+        <p className="auth-switch">
+          {isSignIn ? 'New here?' : 'Already have an account?'}{' '}
+          <button type="button" onClick={changeMode}>{isSignIn ? 'Create account' : 'Sign in'}</button>
+        </p>
+      </Modal.Body>
+    </Modal>
+  );
 }
